@@ -1,7 +1,7 @@
+using System.Collections;
 using NUnit.Framework;
 using UnityEngine;
 using System.Collections.Generic;
-using System.Collections;
 
 public class TargetSpawner : MonoBehaviour
 {
@@ -10,40 +10,61 @@ public class TargetSpawner : MonoBehaviour
     [SerializeField] private Material baseMat;
 
     private int activeCount;
+    
+    void Start()
+    {
+        foreach (GameObject t in targets) t.SetActive(false);
 
+        StartCoroutine(SpawnLogic());
+    }
+    
     void Update()
     {
-        CheckTargets();
+        int currentActive = 0;
+        foreach (GameObject t in targets)
+        {
+            if (t.activeInHierarchy) currentActive++;
+        }
     }
 
-    private void CheckTargets()
+    private void ActivateTargets()
     {
-        activeCount = 0;
-        foreach (GameObject target in targets)
+        if (targets.Count <= numberOfActive) return;
+    
+        int currentActive = GetActiveCount();
+    
+        while (currentActive < numberOfActive)
         {
-            if (target.activeInHierarchy) activeCount++;
-
-            if (activeCount <= 0) 
+            int index = Random.Range(0, targets.Count);
+            if (!targets[index].activeInHierarchy)
             {
-                StartCoroutine(ActivateTargets());
+                targets[index].SetActive(true);
+                currentActive++; 
             }
         }
     }
-
-    private IEnumerator ActivateTargets()
+    
+    private int GetActiveCount()
     {
-        foreach (GameObject target in targets)
+        int count = 0;
+        foreach (GameObject t in targets)
         {
-            MeshRenderer mr = target.GetComponent<MeshRenderer>();
-            mr.material = baseMat;
+            if (t.activeInHierarchy) count++;
         }
-
-        for (int i = 1; i < numberOfActive; i++)
+        return count;
+    }
+    
+    private IEnumerator SpawnLogic()
+    {
+        while(true)
         {
-            int index = Random.Range(0, targets.Count);
-            targets[index].SetActive(true);
-            
-            yield return new WaitForSeconds(1f);
+            int currentActive = GetActiveCount();
+            if (currentActive < numberOfActive)
+            {
+                yield return new WaitForEndOfFrame();
+                ActivateTargets();
+            }
+            yield return null;
         }
     }
 }
